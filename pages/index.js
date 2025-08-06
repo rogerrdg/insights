@@ -37,7 +37,7 @@ export default function Chat() {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      height: '100vh',
+      height: 'calc(100vh-300px)',
       padding: '20px',
       backgroundColor: '#fff',
       fontFamily: 'sans-serif'
