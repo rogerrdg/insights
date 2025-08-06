@@ -3,58 +3,101 @@ import { useState } from 'react';
 export default function Chat() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
-  { role: 'system', content: 'Você é um assistente útil.' }
-]);
-
+    { role: 'system', content: 'Você é um assistente útil.' }
+  ]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage = { role: 'user', content: input };
     const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);  // Atualiza histórico com a mensagem do usuário
+    setMessages(updatedMessages);
 
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }),
-    });
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages }),
+      });
 
-  const data = await response.json();
-  setMessages([...messages, { role: 'assistant', content: data.reply }]);
+      const data = await response.json();
 
-    setInput('');  // Limpa o input
+      const assistantMessage = { role: 'assistant', content: data.reply };
+      setMessages(prevMessages => [...prevMessages, assistantMessage]);
+    } catch (error) {
+      const errorMessage = { role: 'assistant', content: 'Erro: Failed to fetch. Tente novamente.' };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+    }
+
+    setInput('');
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      {messages.map((msg, index) => (
-        <div
-          key={index}
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      height: '100vh',
+      padding: '20px',
+      backgroundColor: '#fff',
+      fontFamily: 'sans-serif'
+    }}>
+      <div style={{ overflowY: 'auto', marginBottom: '20px' }}>
+        {messages
+          .filter(msg => msg.role !== 'system')
+          .map((msg, index) => (
+            <div key={index} style={{
+              display: 'flex',
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              marginBottom: '10px'
+            }}>
+              <div style={{
+                backgroundColor: msg.role === 'user' ? '#2ed3b7' : '#f1f1f1',
+                color: msg.role === 'user' ? '#fff' : '#333',
+                padding: '10px 15px',
+                borderRadius: '20px',
+                maxWidth: '60%',
+                fontSize: '14px'
+              }}>
+                {msg.content}
+              </div>
+            </div>
+        ))}
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        borderTop: '1px solid #eee',
+        paddingTop: '10px'
+      }}>
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Digite sua mensagem..."
           style={{
-            background: msg.role === 'user' ? '#4fd1c5' : '#e2e8f0',
-            color: '#000',
+            flex: 1,
+            padding: '12px 15px',
+            borderRadius: '20px',
+            border: '1px solid #ddd',
+            marginRight: '10px',
+            fontSize: '14px'
+          }}
+        />
+        <button
+          onClick={handleSend}
+          style={{
+            backgroundColor: '#a0f0df',
+            border: 'none',
+            borderRadius: '12px',
             padding: '10px',
-            marginBottom: '5px',
-            borderRadius: '10px',
-            maxWidth: '70%',
-            alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start'
+            cursor: 'pointer'
           }}
         >
-          {msg.content}
-        </div>
-      ))}
-
-      <div style={{ display: 'flex', marginTop: '20px' }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Digite sua mensagem..."
-          style={{ flex: 1, padding: '10px', borderRadius: '5px', marginRight: '10px' }}
-        />
-        <button onClick={handleSend} style={{ padding: '10px 20px' }}>
-          Enviar
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 16 16">
+            <path d="M15.854.146a.5.5 0 0 0-.707 0L.146 15.146a.5.5 0 1 0 .707.707L15.854.853a.5.5 0 0 0 0-.707z"/>
+          </svg>
         </button>
       </div>
     </div>
