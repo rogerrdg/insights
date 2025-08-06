@@ -1,66 +1,75 @@
+import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
-import { useState } from 'react';
-
-export default function Home() {
+export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
 
-  const sendMessage = async () => {
-    if (!input) return;
-    setMessages([...messages, { role: 'user', content: input }, { role: 'assistant', content: '' }]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: 'Você é um assistente em português.' },
-          { role: 'user', content: input }
-        ]
-      })
+      body: JSON.stringify({ messages: [...messages, userMessage] }),
     });
 
-    const reader = response.body.getReader();
+    if (!response.ok) {
+      console.error('Failed to fetch response');
+      return;
+    }
+
+    const data = response.body;
+    if (!data) return;
+
+    const reader = data.getReader();
     const decoder = new TextDecoder();
     let done = false;
-    let assistantMsg = '';
+    let assistantMessage = { role: 'assistant', content: '' };
+
+    setMessages((prev) => [...prev, assistantMessage]);
 
     while (!done) {
       const { value, done: doneReading } = await reader.read();
       done = doneReading;
-      const chunk = decoder.decode(value);
-      const matches = chunk.match(/"delta":\s*\{\s*"content":\s*"([^"]*)"/g);
-      if (matches) {
-        matches.forEach(match => {
-          const content = match.match(/"content":"([^"]*)"/)[1];
-          assistantMsg += content;
-          setMessages(current => current.map(m => m.role === 'assistant' ? { ...m, content: assistantMsg } : m));
-        });
-      }
+      const chunkValue = decoder.decode(value);
+      assistantMessage.content += chunkValue;
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { ...assistantMessage };
+        return updated;
+      });
     }
   };
 
   return (
-    <div style={{ fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-        {messages.map((msg, i) => (
-          <div key={i} style={{
-            alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            background: msg.role === 'user' ? '#4fd1c5' : '#e2e8f0',
-            color: msg.role === 'user' ? 'white' : 'black',
-            padding: '10px 15px',
-            borderRadius: 12,
-            margin: '5px 0',
-            whiteSpace: 'pre-wrap',
-            maxWidth: '60%'
-          }}>{msg.content}</div>
+    <div>
+      <div>
+        {messages.map((message, index) => (
+          <div key={index} style={{
+            backgroundColor: message.role === 'user' ? '#4fd1c5' : '#e2e8f0',
+            padding: '10px',
+            margin: '10px',
+            borderRadius: '10px'
+          }}>
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
         ))}
       </div>
-      <div style={{ display: 'flex', padding: 10, background: '#fff' }}>
-        <input value={input} onChange={e => setInput(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #ccc' }} />
-        <button onClick={sendMessage} style={{ marginLeft: 10, padding: '10px 20px', borderRadius: 8, background: '#4fd1c5', color: 'white' }}>Enviar</button>
-      </div>
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Digite sua mensagem..."
+        />
+        <button type="submit">Enviar</button>
+      </form>
     </div>
   );
 }
