@@ -2,7 +2,10 @@ import { useState } from 'react';
 
 export default function Chat() {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([
+  { role: 'system', content: 'Você é um assistente útil.' }
+]);
+
 
   const handleSend = async () => {
     if (!input.trim()) return;
