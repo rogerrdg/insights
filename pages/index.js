@@ -17,13 +17,12 @@ export default function Chat() {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: updatedMessages })  // Envia histórico completo
+      body: JSON.stringify({ messages }),
     });
 
-    const data = await response.json();
-    const assistantMessage = { role: 'assistant', content: data.result };
+  const data = await response.json();
+  setMessages([...messages, { role: 'assistant', content: data.reply }]);
 
-    setMessages((prevMessages) => [...prevMessages, assistantMessage]);  // Adiciona resposta
     setInput('');  // Limpa o input
   };
 
